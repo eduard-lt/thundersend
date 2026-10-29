@@ -7,7 +7,8 @@ swift build -c release --arch arm64 --arch x86_64
 
 APP=build/ThunderSend.app
 rm -rf "$APP"
-mkdir -p "$APP/Contents/MacOS"
+mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
+cp Resources/AppIcon.icns "$APP/Contents/Resources/"
 cp "$(swift build -c release --arch arm64 --arch x86_64 --show-bin-path)/ThunderSend" "$APP/Contents/MacOS/"
 
 cat > "$APP/Contents/Info.plist" <<EOF
@@ -17,6 +18,7 @@ cat > "$APP/Contents/Info.plist" <<EOF
 <dict>
     <key>CFBundleName</key><string>ThunderSend</string>
     <key>CFBundleExecutable</key><string>ThunderSend</string>
+    <key>CFBundleIconFile</key><string>AppIcon</string>
     <key>CFBundleIdentifier</key><string>app.thundersend</string>
     <key>CFBundlePackageType</key><string>APPL</string>
     <key>CFBundleShortVersionString</key><string>1.0</string>
