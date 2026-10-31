@@ -20,19 +20,30 @@ final class Link {
     private let myName = Host.current().localizedName ?? ProcessInfo.processInfo.hostName
     private let serviceType = "_thundersend._tcp"
     private let queue = DispatchQueue(label: "thundersend")
-    private let monitor = NWPathMonitor()
     private var bridge: NWInterface?
     private var peer: NWEndpoint?
     private var listener: NWListener?
     private var browser: NWBrowser?
 
     init() {
-        // Thunderbolt Bridge shows up as "bridge0" once a cable links two Macs.
-        monitor.pathUpdateHandler = { [weak self] path in
-            let iface = path.availableInterfaces.first { $0.name.hasPrefix("bridge") }
-            Task { @MainActor in self?.useBridge(iface) }
+        useBridge(Self.findBridge())
+        // NWPathMonitor never reports the bridge, so check for it directly.
+        Timer.scheduledTimer(withTimeInterval: 2, repeats: true) { [weak self] _ in
+            MainActor.assumeIsolated { self?.useBridge(Self.findBridge()) }
         }
-        monitor.start(queue: queue)
+    }
+
+    /// Thunderbolt Bridge gets a self-assigned IPv4 address once a cable links two Macs.
+    nonisolated static func findBridge() -> NWInterface? {
+        var head: UnsafeMutablePointer<ifaddrs>?
+        guard getifaddrs(&head) == 0 else { return nil }
+        defer { freeifaddrs(head) }
+        for ifa in sequence(first: head, next: { $0?.pointee.ifa_next }) {
+            guard let ifa = ifa?.pointee, ifa.ifa_addr?.pointee.sa_family == UInt8(AF_INET) else { continue }
+            let name = String(cString: ifa.ifa_name)
+            if name.hasPrefix("bridge") { return IPv6Address("fe80::1%\(name)")?.interface }
+        }
+        return nil
     }
 
     var busy: Bool {
