@@ -3,6 +3,8 @@
 set -e
 cd "$(dirname "$0")"
 
+VERSION="${VERSION:-1.0}"
+
 swift build -c release --arch arm64 --arch x86_64
 
 APP=build/ThunderSend.app
@@ -21,8 +23,8 @@ cat > "$APP/Contents/Info.plist" <<EOF
     <key>CFBundleIconFile</key><string>AppIcon</string>
     <key>CFBundleIdentifier</key><string>app.thundersend</string>
     <key>CFBundlePackageType</key><string>APPL</string>
-    <key>CFBundleShortVersionString</key><string>1.0</string>
-    <key>CFBundleVersion</key><string>1</string>
+    <key>CFBundleShortVersionString</key><string>$VERSION</string>
+    <key>CFBundleVersion</key><string>$VERSION</string>
     <key>LSMinimumSystemVersion</key><string>14.0</string>
     <key>NSHighResolutionCapable</key><true/>
     <key>NSLocalNetworkUsageDescription</key><string>ThunderSend finds the other Mac over the Thunderbolt cable.</string>

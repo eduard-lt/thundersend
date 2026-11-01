@@ -1,0 +1,47 @@
+# Pushing a tag like v1.0 publishes a release with the installer attached.
+# Running it by hand from the Actions tab only builds a test installer.
+name: Release
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: macos-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build installer
+        run: |
+          if [ "$GITHUB_REF_TYPE" = tag ]; then export VERSION="${GITHUB_REF_NAME#v}"; fi
+          ./dmg.sh
+
+      - name: Keep installer with the run
+        uses: actions/upload-artifact@v4
+        with:
+          name: ThunderSend-dmg
+          path: build/ThunderSend.dmg
+
+      - name: Publish release
+        if: github.ref_type == 'tag'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          SHA=$(shasum -a 256 build/ThunderSend.dmg | cut -d' ' -f1)
+          cat > notes.md <<EOF
+          ## Install
+
+          1. Download **ThunderSend.dmg** below and drag ThunderSend to Applications. Do this on both Macs.
+          2. macOS blocks the first launch because the app is not notarized. Open ThunderSend once, then go to System Settings > Privacy & Security and click **Open Anyway**.
+             Or run this in Terminal: \`xattr -cr /Applications/ThunderSend.app\`
+          3. Allow local network access when asked, then connect the Macs with a Thunderbolt or USB4 cable.
+
+          SHA-256: \`$SHA\`
+          EOF
+          gh release create "$GITHUB_REF_NAME" build/ThunderSend.dmg --title "ThunderSend ${GITHUB_REF_NAME#v}" --notes-file notes.md
